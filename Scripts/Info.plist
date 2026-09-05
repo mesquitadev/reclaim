@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>            <string>MsCleaner</string>
+    <key>CFBundleDisplayName</key>     <string>MsCleaner</string>
+    <key>CFBundleExecutable</key>      <string>MsCleaner</string>
+    <key>CFBundleIdentifier</key>      <string>dev.mesquita.MsCleaner</string>
+    <key>CFBundlePackageType</key>     <string>APPL</string>
+    <key>CFBundleShortVersionString</key> <string>1.0</string>
+    <key>CFBundleVersion</key>         <string>1</string>
+    <key>LSMinimumSystemVersion</key>  <string>14.0</string>
+    <key>NSHighResolutionCapable</key> <true/>
+    <key>NSHumanReadableCopyright</key> <string>MsCleaner</string>
+    <!-- O app precisa ler pastas de projeto e ~/Library/Developer; sem sandbox,
+         com Acesso Total ao Disco concedido pelo usuário nas Configurações. -->
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Para encontrar resíduos de build em projetos guardados na Mesa.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Para encontrar resíduos de build em projetos guardados em Documentos.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Para encontrar resíduos de build em projetos guardados em Downloads.</string>
+</dict>
+</plist>
