@@ -27,7 +27,7 @@ enum HeadlessRun {
         }
         done.wait()
 
-        let findings = collected.all.sorted { $0.size > $1.size }
+        let findings = collected.all.withoutNested.sorted { $0.size > $1.size }
         for finding in findings {
             let flag = finding.regenerable ? " " : "!"
             print("\(flag) \(finding.size.formattedBytes.padded(to: 10))  \(finding.url.path(percentEncoded: false))")

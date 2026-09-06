@@ -95,6 +95,11 @@ justamente aí.
   que não são recriados por um comando.
 - **Selo *verifique*.** `.venv`, `.idea`, `xcuserdata`, caches de apps
   descobertos e afins são marcados como não reconstruíveis por comando.
+- **Nada aninhado.** Nenhum achado vive dentro de outro: a poda do scanner para na
+  primeira pasta que casa uma regra, e uma passada final descarta o que escapar —
+  remover o pai nunca deixa filhos órfãos na lista, nem conta o mesmo espaço duas
+  vezes. Pastas renomeadas pelo macOS ao restaurar da Lixeira
+  (`node_modules 21-30-17-375`) são reconhecidas como o original.
 - Symlinks nunca são seguidos.
 
 ## Permissões

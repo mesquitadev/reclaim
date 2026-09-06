@@ -95,7 +95,8 @@ struct Scanner: Sendable {
             let isDir = values.isDirectory == true
             let name = entry.lastPathComponent
 
-            if let matched = index[name]?.first(where: { $0.matches(isDirectory: isDir, siblings: siblings) }) {
+            let lookup = Self.canonicalName(name)
+            if let matched = index[lookup]?.first(where: { $0.matches(isDirectory: isDir, siblings: siblings) }) {
                 guard PathGuard.isRemovable(entry) else { continue }
                 if let finding = await makeFinding(at: entry, rule: matched, isDirectory: isDir,
                                                    project: project ?? dir),
@@ -133,6 +134,16 @@ struct Scanner: Sendable {
             regenerable: rule.regenerable,
             clearContentsOnly: false
         )
+    }
+
+    /// O macOS renomeia um item ao restaurá-lo da Lixeira quando o nome já existe
+    /// no destino, acrescentando a hora: `node_modules 21-30-17-375`. A pasta
+    /// continua sendo lixo de build, e sem isto o scanner desce nela e reporta cada
+    /// pacote lá dentro como um achado separado.
+    static func canonicalName(_ name: String) -> String {
+        guard let range = name.range(of: #" \d{2}-\d{2}-\d{2}-\d{1,4}$"#, options: .regularExpression)
+        else { return name }
+        return String(name[name.startIndex..<range.lowerBound])
     }
 
     /// Marcadores de raiz usados quando não há um `.git` acima — projetos soltos,

@@ -64,6 +64,24 @@ struct Finding: Identifiable, Sendable, Hashable {
 
 extension Sequence where Element == Finding {
     var totalSize: Int64 { reduce(0) { $0 + $1.size } }
+
+    /// Sem os achados que vivem dentro de outro achado. A poda do scanner já evita
+    /// isso na maioria dos casos, mas ela depende de o nome do diretório casar uma
+    /// regra; esta passada garante que remover o pai não deixa filhos órfãos na
+    /// lista — nem o tamanho deles contado duas vezes.
+    var withoutNested: [Finding] {
+        let sorted = sorted { $0.url.path(percentEncoded: false) < $1.url.path(percentEncoded: false) }
+        var kept: [Finding] = []
+        var enclosing: String?
+
+        for finding in sorted {
+            let path = finding.url.path(percentEncoded: false)
+            if let enclosing, path.hasPrefix(enclosing) { continue }
+            kept.append(finding)
+            enclosing = path.hasSuffix("/") ? path : path + "/"
+        }
+        return kept
+    }
 }
 
 extension Int64 {
