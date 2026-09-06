@@ -20,7 +20,13 @@ private struct GeneralTab: View {
             Section {
                 Toggle("Incluir caches globais de ferramentas", isOn: Binding(
                     get: { model.includeGlobalCaches }, set: { model.includeGlobalCaches = $0 }))
-                Text("npm, Cargo, Gradle, DerivedData, pub-cache e afins — todos reconstruídos sob demanda.")
+                Text("npm, Cargo, Gradle, DerivedData, Homebrew, Playwright, JetBrains e afins — todos reconstruídos sob demanda.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Toggle("Descobrir caches de outros apps", isOn: Binding(
+                    get: { model.discoverAppCaches }, set: { model.discoverAppCaches = $0 }))
+                    .disabled(!model.includeGlobalCaches)
+                Text("Varre tudo em ~/Library/Caches e ~/.cache, inclusive o que não está no catálogo. Esses vêm desmarcados, com o selo *verifique*.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 

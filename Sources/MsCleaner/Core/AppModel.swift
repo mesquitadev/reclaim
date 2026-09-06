@@ -4,6 +4,8 @@ import Observation
 @MainActor
 @Observable
 final class AppModel {
+    enum ToggleState { case off, mixed, on }
+
     enum Phase: Equatable {
         case idle, scanning, cleaning
         case done(reclaimed: Int64, failures: Int)
@@ -18,6 +20,10 @@ final class AppModel {
     }
     var includeGlobalCaches: Bool {
         didSet { Defaults.includeGlobalCaches = includeGlobalCaches }
+    }
+    /// Além do catálogo curado, varrer tudo que houver em ~/Library/Caches e ~/.cache.
+    var discoverAppCaches: Bool {
+        didSet { Defaults.discoverAppCaches = discoverAppCaches }
     }
     var mode: Cleaner.Mode {
         didSet { Defaults.mode = mode }
@@ -35,6 +41,9 @@ final class AppModel {
     var selection: Set<URL> = []
     var search: String = ""
     var filter: Ecosystem?
+    /// Agrupado por projeto (padrão) ou lista corrida ordenada por tamanho.
+    var grouped: Bool = true
+    var collapsedGroups: Set<String> = []
 
     private var task: Task<Void, Never>?
 
@@ -42,6 +51,7 @@ final class AppModel {
         roots = Defaults.roots
         enabledRuleIDs = Defaults.enabledRuleIDs
         includeGlobalCaches = Defaults.includeGlobalCaches
+        discoverAppCaches = Defaults.discoverAppCaches
         mode = Defaults.mode
         minimumSizeMB = Defaults.minimumSizeMB
     }
@@ -66,6 +76,72 @@ final class AppModel {
             .sorted { $0.size > $1.size }
     }
 
+    /// Os achados visíveis reunidos por projeto, projetos maiores primeiro.
+    var visibleGroups: [FindingGroup] {
+        let visible = visibleFindings
+
+        var byProject: [URL: [Finding]] = [:]
+        for finding in visible {
+            guard let root = finding.projectRoot else { continue }
+            byProject[root, default: []].append(finding)
+        }
+
+        var groups = byProject.map { dir, findings in
+            FindingGroup(kind: .project(dir), name: dir.lastPathComponent,
+                         context: contextPath(for: dir),
+                         findings: findings.sorted { $0.size > $1.size })
+        }
+        .sorted { $0.size > $1.size }
+
+        // Caches não têm projeto: agrupam por categoria e vão para o fim da lista.
+        let byCategory = Dictionary(grouping: visible.compactMap { finding -> (CacheCategory, Finding)? in
+            guard let category = finding.cacheCategory else { return nil }
+            return (category, finding)
+        }, by: \.0)
+
+        groups += CacheCategory.allCases.compactMap { category in
+            guard let entries = byCategory[category], !entries.isEmpty else { return nil }
+            return FindingGroup(kind: .cacheCategory(category), name: category.label,
+                                context: nil,
+                                findings: entries.map(\.1).sorted { $0.size > $1.size })
+        }
+        return groups
+    }
+
+    /// Caminho do projeto relativo à pasta escaneada que o contém, sem o nome dele
+    /// (que já é o título do grupo). `nil` quando o projeto é a própria raiz.
+    private func contextPath(for dir: URL) -> String? {
+        let full = dir.deletingLastPathComponent().path(percentEncoded: false)
+        let root = roots
+            .map { $0.path(percentEncoded: false) }
+            .filter { full.hasPrefix($0) }
+            .max(by: { $0.count < $1.count })
+        guard let root else { return full.isEmpty ? nil : full }
+        let relative = String(full.dropFirst(root.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return relative.isEmpty ? nil : relative
+    }
+
+    /// A árvore achatada na ordem em que aparece na tela: cabeçalho, depois os
+    /// filhos se o grupo estiver aberto. É essa sequência que as setas percorrem —
+    /// por isso ela vive no modelo, e não na view.
+    var flatRows: [FlatRow] {
+        visibleGroups.flatMap { group -> [FlatRow] in
+            let header = FlatRow.header(group)
+            guard isExpanded(group) else { return [header] }
+            return [header] + group.findings.map { .child($0, groupID: group.id) }
+        }
+    }
+
+    /// Vizinho do cursor na direção dada, ou `nil` se já está na ponta.
+    func row(after row: FlatRow?, offset: Int) -> FlatRow? {
+        let rows = flatRows
+        guard let row, let index = rows.firstIndex(where: { $0.id == row.id }) else {
+            return offset > 0 ? rows.first : rows.last
+        }
+        let next = index + offset
+        return rows.indices.contains(next) ? rows[next] : nil
+    }
+
     var selectedFindings: [Finding] {
         findings.filter { selection.contains($0.url) }
     }
@@ -82,6 +158,13 @@ final class AppModel {
 
     var globalCacheTotal: Int64 {
         findings.filter(\.isGlobalCache).totalSize
+    }
+
+    var sizeByCacheCategory: [CacheCategory: Int64] {
+        findings.reduce(into: [:]) { acc, finding in
+            guard let category = finding.cacheCategory else { return }
+            acc[category, default: 0] += finding.size
+        }
     }
 
     var freeSpace: Int64? {
@@ -115,6 +198,8 @@ final class AppModel {
         let scanner = Scanner(rules: rules, minimumSize: Int64(minimumSizeMB) * 1_048_576)
         let roots = roots
         let wantsCaches = includeGlobalCaches
+        let cacheScanner = CacheScanner(discoverUnknown: discoverAppCaches,
+                                        minimumSize: Int64(minimumSizeMB) * 1_048_576)
 
         task = Task { [weak self] in
             guard let self else { return }
@@ -132,7 +217,7 @@ final class AppModel {
                 onBatch: sink
             )
             if wantsCaches, !Task.isCancelled {
-                await CacheScanner().scan(onBatch: sink)
+                await cacheScanner.scan(onBatch: sink)
             }
             self.finishScan()
         }
@@ -188,6 +273,42 @@ final class AppModel {
     // MARK: - Seleção em massa
 
     func selectAllVisible() { selection.formUnion(visibleFindings.map(\.url)) }
+
+    /// Estado do checkbox mestre, considerando só o que está visível.
+    var masterSelectionState: ToggleState {
+        let visible = visibleFindings
+        guard !visible.isEmpty else { return .off }
+        let marked = visible.count { selection.contains($0.url) }
+        if marked == 0 { return .off }
+        return marked == visible.count ? .on : .mixed
+    }
+
+    func setMasterSelection(_ on: Bool) {
+        let urls = visibleFindings.map(\.url)
+        if on { selection.formUnion(urls) } else { selection.subtract(urls) }
+    }
+
+    /// Estado do checkbox de um grupo: nenhum, alguns ou todos os filhos marcados.
+    func selectionState(of group: FindingGroup) -> ToggleState {
+        let marked = group.findings.count { selection.contains($0.url) }
+        if marked == 0 { return .off }
+        return marked == group.findings.count ? .on : .mixed
+    }
+
+    func setSelection(of group: FindingGroup, on: Bool) {
+        let urls = group.findings.map(\.url)
+        if on { selection.formUnion(urls) } else { selection.subtract(urls) }
+    }
+
+    func isExpanded(_ group: FindingGroup) -> Bool { !collapsedGroups.contains(group.id) }
+
+    func setExpanded(_ group: FindingGroup, _ expanded: Bool) {
+        if expanded { collapsedGroups.remove(group.id) } else { collapsedGroups.insert(group.id) }
+    }
+
+    func expandAll() { collapsedGroups.removeAll() }
+
+    func collapseAll() { collapsedGroups = Set(visibleGroups.map(\.id)) }
     func deselectAll() { selection.removeAll() }
     func selectOnlyRegenerable() {
         selection = Set(findings.filter(\.regenerable).map(\.url))

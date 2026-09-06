@@ -31,8 +31,16 @@ struct SidebarView: View {
 
             if model.globalCacheTotal > 0 {
                 Section("Caches globais") {
-                    LabeledContent("Ferramentas", value: model.globalCacheTotal.formattedBytes)
-                        .font(.callout)
+                    ForEach(sortedCacheCategories, id: \.0) { category, size in
+                        HStack {
+                            Label(category.label, systemImage: category.symbol)
+                            Spacer()
+                            Text(size.formattedBytes)
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .font(.callout)
                 }
             }
 
@@ -59,6 +67,10 @@ struct SidebarView: View {
 
     private var sortedEcosystems: [(Ecosystem, Int64)] {
         model.sizeByEcosystem.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
+    }
+
+    private var sortedCacheCategories: [(CacheCategory, Int64)] {
+        model.sizeByCacheCategory.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
     }
 
     private var filterBinding: Binding<Ecosystem?> {

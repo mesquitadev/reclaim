@@ -11,6 +11,7 @@ enum Defaults {
         static let includeGlobalCaches = "includeGlobalCaches"
         static let mode = "mode"
         static let minimumSizeMB = "minimumSizeMB"
+        static let discoverAppCaches = "discoverAppCaches"
     }
 
     static var roots: [URL] {
@@ -45,6 +46,11 @@ enum Defaults {
     static var includeGlobalCaches: Bool {
         get { store.object(forKey: Key.includeGlobalCaches) as? Bool ?? true }
         set { store.set(newValue, forKey: Key.includeGlobalCaches) }
+    }
+
+    static var discoverAppCaches: Bool {
+        get { store.object(forKey: Key.discoverAppCaches) as? Bool ?? true }
+        set { store.set(newValue, forKey: Key.discoverAppCaches) }
     }
 
     static var mode: Cleaner.Mode {
