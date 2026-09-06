@@ -195,11 +195,10 @@ final class AppModel {
     }
 
     private func absorb(_ batch: [Finding]) {
+        // Nada entra marcado. Um scan que já vem com tudo selecionado transforma
+        // um clique distraído em perda de gigabytes; marcar é decisão do usuário,
+        // e o menu Seleção dá os atalhos (reconstruível, sem uso há 30/90 dias).
         findings.append(contentsOf: batch)
-        // Pré-seleção só do que é reconstruível por um comando — o resto o usuário marca.
-        for finding in batch where finding.regenerable {
-            selection.insert(finding.url)
-        }
     }
 
     private func finishScan() {

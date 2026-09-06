@@ -86,9 +86,15 @@ justamente aí.
 - **Caminhos protegidos** (`Core/PathGuard.swift`): raiz do sistema, `/Library`, o
   home em si, `~/Documents`, `~/.ssh`, iCloud Drive, bibliotecas de Fotos. Bundles
   opacos (`.app`, `.xcodeproj`, `.framework`) não são percorridos.
-- **Pré-seleção conservadora.** Só vem marcado o que um comando reconstrói
-  (`npm install`, `cargo build`). `.venv`, `.idea`, `xcuserdata` e afins aparecem
-  com o selo *verifique* e desmarcados.
+- **Nada vem marcado.** O scan termina com a lista inteira desmarcada: um clique
+  distraído num app que já veio com 30 GB selecionados custa caro. Marcar é
+  decisão explícita, e o menu Seleção dá os atalhos (só o reconstruível, sem uso
+  há 30/90 dias).
+- **Confirmação sempre**, nos dois modos — a Lixeira também move dezenas de
+  gigabytes de uma vez. O diálogo diz quantos itens, quanto espaço, e nomeia os
+  que não são recriados por um comando.
+- **Selo *verifique*.** `.venv`, `.idea`, `xcuserdata`, caches de apps
+  descobertos e afins são marcados como não reconstruíveis por comando.
 - Symlinks nunca são seguidos.
 
 ## Permissões

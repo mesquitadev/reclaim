@@ -21,7 +21,7 @@ struct ActionBar: View {
             .fixedSize()
 
             Button {
-                if model.mode == .delete { confirming = true } else { model.clean() }
+                confirming = true
             } label: {
                 Label("Limpar \(model.selectedFindings.count)", systemImage: model.mode == .trash ? "trash" : "flame")
             }
@@ -33,14 +33,15 @@ struct ActionBar: View {
         .padding(.vertical, 10)
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
-        .confirmationDialog("Apagar definitivamente \(model.selectedFindings.count) itens?",
-                            isPresented: $confirming, titleVisibility: .visible) {
-            Button("Apagar \(model.selectedFindings.totalSize.formattedBytes)", role: .destructive) {
+        // A confirmação vale para os dois modos: mesmo a Lixeira, com tudo marcado,
+        // move dezenas de gigabytes de uma vez.
+        .confirmationDialog(title, isPresented: $confirming, titleVisibility: .visible) {
+            Button(confirmLabel, role: model.mode == .delete ? .destructive : nil) {
                 model.clean()
             }
             Button("Cancelar", role: .cancel) {}
         } message: {
-            Text("Isso não passa pela Lixeira e não pode ser desfeito.")
+            Text(confirmMessage)
         }
         .overlay(alignment: .leading) {
             if model.phase == .cleaning {
@@ -54,6 +55,31 @@ struct ActionBar: View {
         }
     }
 
+    private var title: String {
+        let count = model.selectedFindings.count
+        let size = model.selectedFindings.totalSize.formattedBytes
+        return model.mode == .delete
+            ? "Apagar definitivamente \(count) \(count == 1 ? "item" : "itens") (\(size))?"
+            : "Mover \(count) \(count == 1 ? "item" : "itens") (\(size)) para a Lixeira?"
+    }
+
+    private var confirmLabel: String {
+        model.mode == .delete ? "Apagar" : "Mover para a Lixeira"
+    }
+
+    private var confirmMessage: String {
+        let risky = model.selectedFindings.filter { !$0.regenerable }
+        var parts: [String] = []
+        if !risky.isEmpty {
+            let names = risky.prefix(3).map(\.name).joined(separator: ", ")
+            parts.append("\(risky.count) \(risky.count == 1 ? "item marcado não é recriado" : "itens marcados não são recriados") por um comando: \(names)\(risky.count > 3 ? "…" : "").")
+        }
+        parts.append(model.mode == .delete
+            ? "Isso não passa pela Lixeira e não pode ser desfeito."
+            : "Os itens vão para a Lixeira; o espaço só é liberado ao esvaziá-la.")
+        return parts.joined(separator: " ")
+    }
+
     private var summary: String {
         let selected = model.selectedFindings
         guard !selected.isEmpty else { return "Nada marcado" }
@@ -61,6 +87,9 @@ struct ActionBar: View {
     }
 
     private var subtitle: String {
+        guard !model.selection.isEmpty else {
+            return "Marque o que quer remover — ou use Seleção ▸ Marcar só o reconstruível"
+        }
         let risky = model.selectedFindings.filter { !$0.regenerable }.count
         if risky > 0 {
             return "\(risky) item\(risky == 1 ? "" : "s") marcado\(risky == 1 ? "" : "s") não é recriado por um comando"
