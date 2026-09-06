@@ -9,23 +9,23 @@ struct ResultSheet: View {
                 .font(.system(size: 42))
                 .foregroundStyle(failures > 0 || cancelled ? .orange : .green)
 
-            Text("\(reclaimed.formattedBytes) liberados")
+            Text(L.t("%@ reclaimed", reclaimed.formattedBytes))
                 .font(.title2.weight(.semibold))
 
             if cancelled {
-                Text("Você parou a limpeza; o que já saiu não volta, e o resto segue marcado.")
+                Text(L.t("You stopped the cleanup; what already went is gone, and the rest stays selected."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
             if failures > 0 {
-                Text("\(failures) item\(failures == 1 ? "" : "s") não pôde ser removido — provavelmente falta permissão ou está em uso.")
+                Text(L.t("%@ items could not be removed — likely in use or missing permission.", "\(failures)"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             } else if model.mode == .trash {
-                Text("Os itens estão na Lixeira; esvazie-a para liberar o espaço de fato.")
+                Text(L.t("The items are in the Trash; empty it to actually free the space."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -33,11 +33,11 @@ struct ResultSheet: View {
 
             HStack {
                 if model.mode == .trash {
-                    Button("Abrir Lixeira") {
+                    Button(L.t("Open Trash")) {
                         NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser.appending(path: ".Trash"))
                     }
                 }
-                Button("Pronto") { model.dismissResult() }
+                Button(L.t("Done")) { model.dismissResult() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }

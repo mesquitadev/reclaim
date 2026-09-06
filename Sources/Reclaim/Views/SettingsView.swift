@@ -5,8 +5,8 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            RulesTab().tabItem { Label("Regras", systemImage: "list.bullet.rectangle") }
-            GeneralTab().tabItem { Label("Geral", systemImage: "gearshape") }
+            RulesTab().tabItem { Label(L.t("Rules"), systemImage: "list.bullet.rectangle") }
+            GeneralTab().tabItem { Label(L.t("General"), systemImage: "gearshape") }
         }
         .frame(width: 560, height: 460)
     }
@@ -18,34 +18,46 @@ private struct GeneralTab: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Incluir caches globais de ferramentas", isOn: Binding(
+                Picker(L.t("Language"), selection: Binding(
+                    get: { model.language }, set: { model.language = $0 })) {
+                    ForEach(Language.allCases) { language in
+                        // Cada idioma se nomeia no próprio idioma; "System" segue
+                        // a preferência do macOS, caindo em inglês.
+                        Text(language == .system ? L.t("System") : language.label)
+                            .tag(language)
+                    }
+                }
+            }
+
+            Section {
+                Toggle(L.t("Include global tool caches"), isOn: Binding(
                     get: { model.includeGlobalCaches }, set: { model.includeGlobalCaches = $0 }))
-                Text("npm, Cargo, Gradle, DerivedData, Homebrew, Playwright, JetBrains e afins — todos reconstruídos sob demanda.")
+                Text(L.t("npm, Cargo, Gradle, DerivedData, Homebrew, Playwright, JetBrains and friends — all rebuilt on demand."))
                     .font(.caption).foregroundStyle(.secondary)
 
-                Toggle("Descobrir caches de outros apps", isOn: Binding(
+                Toggle(L.t("Discover other app caches"), isOn: Binding(
                     get: { model.discoverAppCaches }, set: { model.discoverAppCaches = $0 }))
                     .disabled(!model.includeGlobalCaches)
-                Text("Varre tudo em ~/Library/Caches e ~/.cache, inclusive o que não está no catálogo. Esses vêm desmarcados, com o selo *verifique*.")
+                Text(L.t("Scans everything in ~/Library/Caches and ~/.cache, including what is not catalogued. Those arrive unselected, tagged *check*."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
             Section {
-                Picker("Ignorar itens menores que", selection: Binding(
+                Picker(L.t("Ignore items smaller than"), selection: Binding(
                     get: { model.minimumSizeMB }, set: { model.minimumSizeMB = $0 })) {
-                    Text("Nada (mostrar tudo)").tag(0)
+                    Text(L.t("Nothing (show everything)")).tag(0)
                     Text("1 MB").tag(1)
                     Text("10 MB").tag(10)
                     Text("100 MB").tag(100)
                 }
-                Text("Filtra o ruído de milhares de `__pycache__` e `.DS_Store` minúsculos.")
+                Text(L.t("Filters out the noise of thousands of tiny `__pycache__` and `.DS_Store`."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
             Section {
-                Picker("Ao limpar", selection: Binding(
+                Picker(L.t("When cleaning"), selection: Binding(
                     get: { model.mode }, set: { model.mode = $0 })) {
-                    ForEach(Cleaner.Mode.allCases, id: \.self) { Text($0.label).tag($0) }
+                    ForEach(Cleaner.Mode.allCases, id: \.self) { Text(L.t($0.label)).tag($0) }
                 }
             }
         }
@@ -74,7 +86,7 @@ private struct RulesTab: View {
                             }
                         }
                     } header: {
-                        Label(eco.label, systemImage: eco.symbol)
+                        Label(L.t(eco.label), systemImage: eco.symbol)
                     }
                 }
             }

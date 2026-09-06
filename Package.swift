@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "MsCleaner",
+    name: "Reclaim",
     platforms: [.macOS(.v14)],
     targets: [
         .executableTarget(
-            name: "MsCleaner",
-            path: "Sources/MsCleaner",
+            name: "Reclaim",
+            path: "Sources/Reclaim",
             swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]

@@ -8,8 +8,8 @@ struct Cleaner: Sendable {
 
         var label: String {
             switch self {
-            case .trash: "Mover para a Lixeira"
-            case .delete: "Apagar definitivamente"
+            case .trash: "Move to Trash"
+            case .delete: "Delete permanently"
             }
         }
     }

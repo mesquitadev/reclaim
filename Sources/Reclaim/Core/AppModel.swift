@@ -32,6 +32,14 @@ final class AppModel {
     var minimumSizeMB: Int {
         didSet { Defaults.minimumSizeMB = minimumSizeMB }
     }
+    /// Trocar o idioma reescreve `L.current`, e como a UI lê tudo por `L.t` numa
+    /// view observada, a tela inteira se refaz sem reiniciar o app.
+    var language: Language {
+        didSet {
+            Defaults.language = language
+            L.current = language.resolved
+        }
+    }
 
     // Estado do scan
     private(set) var phase: Phase = .idle
@@ -69,6 +77,8 @@ final class AppModel {
         discoverAppCaches = Defaults.discoverAppCaches
         mode = Defaults.mode
         minimumSizeMB = Defaults.minimumSizeMB
+        language = Defaults.language
+        L.current = language.resolved
     }
 
     // MARK: - Derivados

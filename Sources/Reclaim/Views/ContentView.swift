@@ -16,7 +16,7 @@ struct ContentView: View {
         }
         .toolbar { toolbar }
         .searchable(text: Binding(get: { model.search }, set: { model.search = $0 }),
-                    placement: .toolbar, prompt: "Filtrar por projeto ou caminho")
+                    placement: .toolbar, prompt: Text(L.t("Filter by project or path")))
         .sheet(isPresented: resultBinding) { ResultSheet() }
         .sheet(isPresented: .constant(model.phase == .cleaning)) { CleaningSheet() }
     }
@@ -25,34 +25,34 @@ struct ContentView: View {
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             if model.phase == .scanning {
-                Button("Parar", systemImage: "stop.fill") { model.cancel() }
+                Button(L.t("Stop"), systemImage: "stop.fill") { model.cancel() }
             } else {
-                Button("Escanear", systemImage: "magnifyingglass") { model.startScan() }
+                Button(L.t("Scan"), systemImage: "magnifyingglass") { model.startScan() }
                     .disabled(model.isBusy || model.roots.isEmpty)
             }
         }
         ToolbarItem(placement: .primaryAction) {
-            Picker("Exibição", selection: Binding(get: { model.grouped }, set: { model.grouped = $0 })) {
-                Label("Por projeto", systemImage: "list.bullet.indent").tag(true)
-                Label("Lista", systemImage: "list.bullet").tag(false)
+            Picker(L.t("View"), selection: Binding(get: { model.grouped }, set: { model.grouped = $0 })) {
+                Label(L.t("By project"), systemImage: "list.bullet.indent").tag(true)
+                Label(L.t("Flat list"), systemImage: "list.bullet").tag(false)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .help("Agrupar por projeto ou listar tudo por tamanho")
+            .help(L.t("Group by project, or list everything by size"))
         }
         ToolbarItem(placement: .primaryAction) {
-            Menu("Seleção", systemImage: "checklist") {
-                Button("Marcar tudo visível") { model.selectAllVisible() }
-                Button("Marcar só o reconstruível") { model.selectOnlyRegenerable() }
+            Menu(L.t("Selection"), systemImage: "checklist") {
+                Button(L.t("Select all visible")) { model.selectAllVisible() }
+                Button(L.t("Select only what a command rebuilds")) { model.selectOnlyRegenerable() }
                 Divider()
-                Button("Marcar sem uso há 30 dias") { model.selectStale(days: 30) }
-                Button("Marcar sem uso há 90 dias") { model.selectStale(days: 90) }
+                Button(L.t("Select untouched for 30 days")) { model.selectStale(days: 30) }
+                Button(L.t("Select untouched for 90 days")) { model.selectStale(days: 90) }
                 Divider()
-                Button("Desmarcar tudo") { model.deselectAll() }
+                Button(L.t("Deselect all")) { model.deselectAll() }
                 if model.grouped {
                     Divider()
-                    Button("Expandir todos os grupos") { model.expandAll() }
-                    Button("Recolher todos os grupos") { model.collapseAll() }
+                    Button(L.t("Expand all")) { model.expandAll() }
+                    Button(L.t("Collapse all")) { model.collapseAll() }
                 }
             }
             .disabled(model.findings.isEmpty)

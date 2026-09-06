@@ -1,123 +1,163 @@
-# MsCleaner
+<div align="center">
 
-App nativo de macOS (SwiftUI, Swift 6) que encontra e remove resíduos de build e
-dependências de projetos de várias linguagens.
+<img src="docs/icon.png" width="128" alt="Reclaim">
 
-## Rodando
+# Reclaim
 
-```bash
-Scripts/bundle.sh          # gera dist/MsCleaner.app (universal arm64 + x86_64)
-open dist/MsCleaner.app
+**Get your disk space back.** A native macOS app that finds and removes build
+artifacts, dependency folders and tool caches across a dozen languages.
+
+[Português](#português) · [Install](#install) · [Safety](#safety)
+
+</div>
+
+---
+
+Reclaim scans the folders where you keep code, groups what it finds by project,
+and shows you the size of each thing before you touch it. It also measures the
+global caches your tools scatter around `~/Library/Caches` and `~/.cache` —
+usually several gigabytes that nothing tracks.
+
+Nothing is pre-selected, nothing is removed without a confirmation, and the
+default is the Trash rather than deletion.
+
+## Install
+
+```sh
+brew install --cask mesquitadev/tap/reclaim
 ```
 
-No Xcode: `open Package.swift`, escolha o scheme **MsCleaner** e o destino **My Mac**.
+Or build from source:
 
-Rodando pelo Xcode ou por `swift run`, o binário do SwiftPM não tem bundle nem
-`Info.plist` — sem isso o LaunchServices trataria o processo como acessório e a
-janela nunca viria para a frente. O `AppDelegate` promove a política de ativação
-no lançamento, então os dois modos funcionam. O que só o `.app` empacotado tem é
-a identidade estável de bundle, e é dela que dependem as permissões de disco: o
-macOS lembra o acesso concedido a `dev.mesquita.MsCleaner`, não a um executável
-avulso em `.build/`. Para testar as pastas protegidas, use o `.app`.
-
-Modo terminal, só listagem (não remove nada):
-
-```bash
-swift run MsCleaner --scan ~/Projects
+```sh
+git clone https://github.com/mesquitadev/reclaim.git
+cd reclaim
+Scripts/bundle.sh          # builds dist/Reclaim.app (universal arm64 + x86_64)
+open dist/Reclaim.app
 ```
 
-## Navegação
+In Xcode: `open Package.swift`, scheme **Reclaim**, destination **My Mac**.
 
-A listagem é uma árvore que segue a estrutura de pastas, com o total agregado em
-cada nível:
+Terminal mode, listing only — it never removes anything:
 
-```
-Dizevolv                                    21,36 GB
-  k7cabines                                 20,95 GB
-    target  src-tauri                       20,35 GB
-    node_modules                            599,8 MB
-MaisTech                                     6,84 GB
-  smartobra360                               1,19 GB
-    mdeng-sm360-mobile                      719,1 MB
-      node_modules                          719,1 MB
+```sh
+swift run Reclaim --scan ~/Projects
 ```
 
-As pastas do caminho ficam em cinza; o projeto — onde estão o `.git` ou o
-manifesto — vem destacado, e é onde a recursão para. Cadeias de pasta sem
-bifurcação viram uma linha só (`clientes/acme`) para a árvore não virar escada.
-Os caches globais entram no fim, em nós por categoria.
+## What it finds
 
-| Tecla | Ação |
+**Inside projects** (`Sources/Reclaim/Models/Rule.swift`) — `node_modules`,
+`.next`, `.turbo`, Cargo and Maven `target`, Gradle `build`, `Pods`, SwiftPM
+`.build`, `__pycache__`, `.venv`, `.tox`, `.dart_tool`, Composer `vendor`,
+`CMakeFiles`, `.terraform` and others.
+
+**Global caches** (`Models/GlobalCache.swift`) — 50+ catalogued entries in four
+categories: package managers (npm, Yarn Berry, pnpm, bun, Cargo, Go, Gradle,
+`~/.m2`, pip, uv, Poetry, conda, CocoaPods, NuGet, pub, Homebrew…), build tooling
+(DerivedData, DeviceSupport, simulators, Playwright, Puppeteer, Electron,
+node-gyp, Bazel, ccache, Android, nvm…), editors (JetBrains, VS Code, Cursor,
+Zed) and logs.
+
+**Everything else** — with *Discover other app caches* on, anything in
+`~/Library/Caches` and `~/.cache` outside the catalogue shows up too, unselected
+and tagged *check*.
+
+## The tree
+
+Findings are grouped along the real folder structure, with the total aggregated
+at every level:
+
+```
+Projects                                     5.8 GB
+  MaisTech                                  4.79 GB
+    castlight                               3.56 GB
+      target · apps/desktop/src-tauri/      3.56 GB
+    smartobra360                           378.7 MB
+      mdeng-sm360-web                      188.2 MB
+```
+
+Path folders are dimmed; the project — where the `.git` or the manifest lives —
+is highlighted, and that is where recursion stops.
+
+| Key | Action |
 |---|---|
-| ↑ ↓ | percorre cabeçalhos e itens na ordem da tela |
-| → ← | expande / recolhe o grupo; sobre um item, ← sobe para o cabeçalho |
-| Espaço | marca ou desmarca a linha (num cabeçalho, o grupo inteiro) |
-| Return | revela no Finder |
-| ⌘R | escanear · ⌘↩ limpar |
+| ↑ ↓ | walk headers and items in screen order |
+| → ← | expand / collapse; on an item, ← goes up to its parent |
+| Space | select or deselect the row (on a node, its whole subtree) |
+| Return | reveal in Finder |
+| ⌘R | scan · ⌘↩ clean |
 
-O checkbox no topo marca tudo que está visível (respeita busca e filtro), e cada
-cabeçalho tem seu próprio checkbox tri-estado.
+## Safety
 
-## O que ele encontra
+- **Nothing arrives selected.** A list that comes pre-checked turns a distracted
+  click into gigabytes of loss. Selecting is deliberate; the Selection menu has
+  the shortcuts (only what a command rebuilds, untouched for 30/90 days).
+- **Always confirms**, in both modes — the Trash also moves tens of gigabytes at
+  once. The dialog names the items that no command restores.
+- **One cleanup at a time**, behind a modal sheet showing the current item, how
+  many of how many, and how much space came back. You can stop it: the item in
+  flight finishes and the rest stays selected.
+- **Sentinels.** `dist/`, `build/`, `vendor/`, `target/` only count as junk when
+  the matching project file sits next to them (`package.json`, `Cargo.toml`,
+  `pom.xml`…). A `docs/dist` full of real content is never touched.
+- **Guarded paths** (`Core/PathGuard.swift`): the system root, `/Library`, your
+  home itself, `~/Documents`, `~/.ssh`, iCloud Drive, Photos libraries. Opaque
+  bundles (`.app`, `.xcodeproj`, `.framework`) are never walked into.
+- **Nothing nested.** No finding lives inside another, so removing a parent never
+  orphans children in the list nor counts the same space twice.
+- Symlinks are never followed.
 
-**Dentro dos projetos** (`Sources/MsCleaner/Models/Rule.swift`) — `node_modules`,
-`.next`, `.turbo`, `target` do Cargo/Maven, `build` do Gradle, `Pods`, `.build` do
-SwiftPM, `__pycache__`, `.venv`, `.tox`, `.dart_tool`, `vendor` do Composer,
-`CMakeFiles`, `.terraform` e outros.
+## Permissions
 
-**Caches globais** (`Models/GlobalCache.swift`) — 50+ entradas catalogadas em
-quatro categorias: gerenciadores de pacote (npm, Yarn Berry, pnpm, bun, Cargo,
-Go, Gradle, `~/.m2`, pip, uv, Poetry, conda, CocoaPods, NuGet, pub, Homebrew…),
-ferramentas de build (DerivedData, DeviceSupport, simuladores, Playwright,
-Puppeteer, Electron, node-gyp, Bazel, ccache, Android, nvm…), editores
-(JetBrains, VS Code, Cursor, Zed) e logs.
+Reclaim is not sandboxed. To scan `~/Documents`, `~/Desktop` or
+`~/Library/Developer`, grant **Full Disk Access** in System Settings › Privacy &
+Security. Without it those folders are silently skipped.
 
-**Todo o resto** — com "Descobrir caches de outros apps" ligado, tudo que houver em
-`~/Library/Caches` e `~/.cache` fora do catálogo entra na lista, desmarcado e com
-selo *verifique*. É o que fecha a conta: numa varredura real aqui, 6 GB estavam
-justamente aí.
+## Language
 
-## Segurança
+English by default, with Portuguese (Brazil) in Settings › General. The
+translation lives in `Sources/Reclaim/Localization/Translations.swift`: keys are
+the English text, so a missing entry falls back to English rather than showing a
+raw identifier. Pull requests with other languages are welcome.
 
-- **Lixeira por padrão.** Apagar de vez exige trocar o modo e confirmar num diálogo.
-- **Sentinelas.** `dist/`, `build/`, `vendor/`, `target/` só contam como lixo quando
-  há o arquivo de projeto correspondente ao lado (`package.json`, `Cargo.toml`,
-  `pom.xml`…). Um `docs/dist` de conteúdo real não é tocado.
-- **Caminhos protegidos** (`Core/PathGuard.swift`): raiz do sistema, `/Library`, o
-  home em si, `~/Documents`, `~/.ssh`, iCloud Drive, bibliotecas de Fotos. Bundles
-  opacos (`.app`, `.xcodeproj`, `.framework`) não são percorridos.
-- **Nada vem marcado.** O scan termina com a lista inteira desmarcada: um clique
-  distraído num app que já veio com 30 GB selecionados custa caro. Marcar é
-  decisão explícita, e o menu Seleção dá os atalhos (só o reconstruível, sem uso
-  há 30/90 dias).
-- **Uma limpeza por vez.** Enquanto ela roda, uma folha modal mostra o andamento
-  (item atual, quantos de quantos, espaço já liberado) e bloqueia escanear, marcar
-  ou disparar outra remoção — duas em paralelo removeriam a mesma árvore duas
-  vezes. Dá para parar: o item em curso termina e o resto continua marcado.
-- **Confirmação sempre**, nos dois modos — a Lixeira também move dezenas de
-  gigabytes de uma vez. O diálogo diz quantos itens, quanto espaço, e nomeia os
-  que não são recriados por um comando.
-- **Selo *verifique*.** `.venv`, `.idea`, `xcuserdata`, caches de apps
-  descobertos e afins são marcados como não reconstruíveis por comando.
-- **Nada aninhado.** Nenhum achado vive dentro de outro: a poda do scanner para na
-  primeira pasta que casa uma regra, e uma passada final descarta o que escapar —
-  remover o pai nunca deixa filhos órfãos na lista, nem conta o mesmo espaço duas
-  vezes. Pastas renomeadas pelo macOS ao restaurar da Lixeira
-  (`node_modules 21-30-17-375`) são reconhecidas como o original.
-- Symlinks nunca são seguidos.
+---
 
-## Permissões
+<a name="português"></a>
 
-O app não é sandboxed. Para varrer `~/Documents`, `~/Desktop` ou
-`~/Library/Developer`, conceda **Acesso Total ao Disco** em Ajustes do Sistema ›
-Privacidade e Segurança. Sem isso, essas pastas são silenciosamente puladas.
+## Português
 
-## Estrutura
+**Recupere seu espaço em disco.** App nativo de macOS que encontra e remove
+resíduos de build, pastas de dependência e caches de ferramentas de uma dúzia de
+linguagens.
 
+O Reclaim varre as pastas onde você guarda código, agrupa o que encontra por
+projeto e mostra o tamanho de cada coisa antes de você tocar nela. Ele também
+mede os caches globais que suas ferramentas espalham por `~/Library/Caches` e
+`~/.cache` — normalmente vários gigabytes que nada acompanha.
+
+Nada vem pré-selecionado, nada é removido sem confirmação, e o padrão é a
+Lixeira em vez de apagar de vez.
+
+```sh
+brew install --cask mesquitadev/tap/reclaim
 ```
-Sources/MsCleaner/
-  Models/    Rule (catálogo por ecossistema), GlobalCache, Finding
-  Core/      Scanner (varredura com poda), CacheScanner, DiskUsage,
-             Cleaner (lixeira/apagar), PathGuard, AppModel, Defaults, HeadlessRun
-  Views/     ContentView, SidebarView, FindingsView, ActionBar, ResultSheet, SettingsView
-```
+
+O app abre em inglês; para trocar, Ajustes › Geral › Idioma › Português (Brasil).
+
+### Segurança
+
+- **Nada vem marcado.** Marcar é decisão explícita.
+- **Confirmação sempre**, nos dois modos, com os itens que nenhum comando recria
+  nomeados no diálogo.
+- **Uma limpeza por vez**, atrás de uma folha modal com progresso e parada.
+- **Sentinelas.** `dist/`, `build/`, `vendor/` e `target/` só contam como lixo
+  quando o arquivo de projeto correspondente está ao lado.
+- **Caminhos protegidos** e bundles opacos nunca são percorridos; symlinks nunca
+  são seguidos.
+
+Para varrer `~/Documents`, `~/Desktop` ou `~/Library/Developer`, conceda
+**Acesso Total ao Disco** em Ajustes do Sistema › Privacidade e Segurança.
+
+## License
+
+MIT

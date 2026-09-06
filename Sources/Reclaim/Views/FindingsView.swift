@@ -33,7 +33,7 @@ private struct MasterBar: View {
             Spacer()
 
             if model.grouped {
-                Button(allCollapsed ? "Expandir tudo" : "Recolher tudo") {
+                Button(L.t(allCollapsed ? "Expand all" : "Collapse all")) {
                     if allCollapsed { model.expandAll() } else { model.collapseAll() }
                 }
                 .buttonStyle(.link)
@@ -52,7 +52,9 @@ private struct MasterBar: View {
     private var label: String {
         let visible = model.visibleFindings.count
         let marked = model.visibleFindings.count { model.selection.contains($0.url) }
-        return marked == 0 ? "Marcar todos os \(visible) itens" : "\(marked) de \(visible) marcados"
+        return marked == 0
+            ? L.t("Select all %@ items", "\(visible)")
+            : L.t("%@ of %@ selected", "\(marked)", "\(visible)")
     }
 
     private var allCollapsed: Bool {
@@ -157,7 +159,7 @@ private struct NodeRow: View {
                     .frame(width: 12)
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(model.isExpanded(node) ? "Recolher" : "Expandir")
+            .accessibilityLabel(L.t(model.isExpanded(node) ? "Collapse" : "Expand"))
 
             TriStateBox(state: model.selectionState(of: node)) { model.setSelection(of: node, on: $0) }
 
@@ -188,12 +190,12 @@ private struct NodeRow: View {
         .help(node.url?.path(percentEncoded: false) ?? node.name)
         .contextMenu {
             if let url = node.url {
-                Button("Revelar no Finder", systemImage: "folder") {
+                Button(L.t("Reveal in Finder"), systemImage: "folder") {
                     NSWorkspace.shared.activateFileViewerSelecting([url])
                 }
             }
-            Button("Marcar tudo") { model.setSelection(of: node, on: true) }
-            Button("Desmarcar tudo") { model.setSelection(of: node, on: false) }
+            Button(L.t("Select all")) { model.setSelection(of: node, on: true) }
+            Button(L.t("Deselect all in group")) { model.setSelection(of: node, on: false) }
         }
     }
 }
@@ -207,7 +209,7 @@ struct FindingRow: View {
         HStack(spacing: 8) {
             Spacer().frame(width: depth > 0 ? 12 : 0)
 
-            Toggle("Marcar \(finding.name)", isOn: binding)
+            Toggle(L.t("Select") + " " + finding.name, isOn: binding)
                 .labelsHidden()
 
             Image(systemName: finding.isGlobalCache ? "externaldrive" : (finding.ecosystem?.symbol ?? "shippingbox"))
@@ -216,7 +218,7 @@ struct FindingRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(finding.name).fontWeight(.medium)
+                    Text(L.t(finding.name)).fontWeight(.medium)
                     // Dentro da árvore o projeto já é o nó pai; aqui só o que resta
                     // do caminho, que distingue dois `__pycache__` do mesmo projeto.
                     // A barra final é o que separa o caminho do nome ao lado —
@@ -227,10 +229,10 @@ struct FindingRow: View {
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     } else if !model.grouped, let project = finding.projectName {
-                        Text("em \(project)").foregroundStyle(.secondary)
+                        Text(L.t("in %@", project)).foregroundStyle(.secondary)
                     }
                     if !finding.regenerable {
-                        Text("verifique")
+                        Text(L.t("check"))
                             .font(.caption2.weight(.semibold))
                             .padding(.horizontal, 5).padding(.vertical, 1)
                             .background(.orange.opacity(0.18), in: Capsule())
@@ -250,7 +252,7 @@ struct FindingRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(finding.size.formattedBytes)
                     .font(.body.monospacedDigit().weight(.medium))
-                Text("\(finding.fileCount) arquivos · \(finding.modified.formatted(.relative(presentation: .named)))")
+                Text(L.t("%@ files · %@", "\(finding.fileCount)", finding.modified.formatted(.relative(presentation: .named))))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -259,10 +261,10 @@ struct FindingRow: View {
         .contentShape(.rect)
         .help(finding.url.path(percentEncoded: false))
         .contextMenu {
-            Button("Revelar no Finder", systemImage: "folder") {
+            Button(L.t("Reveal in Finder"), systemImage: "folder") {
                 NSWorkspace.shared.activateFileViewerSelecting([finding.url])
             }
-            Button("Copiar caminho", systemImage: "doc.on.doc") {
+            Button(L.t("Copy path"), systemImage: "doc.on.doc") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(finding.url.path(percentEncoded: false), forType: .string)
             }
@@ -293,7 +295,7 @@ struct TriStateBox: View {
                 .foregroundStyle(state == .off ? Color.secondary : Color.accentColor)
         }
         .buttonStyle(.borderless)
-        .accessibilityLabel("Marcar")
+        .accessibilityLabel(L.t("Select"))
     }
 
     private var symbol: String {
@@ -311,12 +313,12 @@ private struct ScanBanner: View {
     var body: some View {
         HStack(spacing: 10) {
             ProgressView().controlSize(.small)
-            Text(model.currentPath.isEmpty ? "Escaneando…" : model.currentPath)
+            Text(model.currentPath.isEmpty ? L.t("Scanning…") : model.currentPath)
                 .font(.caption)
                 .lineLimit(1)
                 .truncationMode(.head)
             Spacer()
-            Text("\(model.scannedDirs) pastas")
+            Text(L.t("%@ folders", "\(model.scannedDirs)"))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
@@ -332,21 +334,21 @@ private struct EmptyStateView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label(model.phase == .scanning ? "Escaneando" : "Nada escaneado ainda",
+            Label(L.t(model.phase == .scanning ? "Scanning" : "Nothing scanned yet"),
                   systemImage: model.phase == .scanning ? "hourglass" : "sparkles")
         } description: {
             if model.roots.isEmpty {
-                Text("Adicione ao menos uma pasta de projetos na barra lateral.")
+                Text(L.t("Add at least one project folder in the sidebar."))
             } else if model.phase == .scanning {
                 Text(model.currentPath).lineLimit(2).truncationMode(.head)
             } else {
                 Text(model.roots.count == 1
-                    ? "Escaneie a pasta configurada para ver o que pode ser liberado."
-                    : "Escaneie as \(model.roots.count) pastas configuradas para ver o que pode ser liberado.")
+                    ? L.t("Scan the configured folder to see what can be freed.")
+                    : L.t("Scan the %@ configured folders to see what can be freed.", "\(model.roots.count)"))
             }
         } actions: {
             if model.phase != .scanning, !model.roots.isEmpty {
-                Button("Escanear agora") { model.startScan() }
+                Button(L.t("Scan now")) { model.startScan() }
                     .buttonStyle(.borderedProminent)
             }
         }
