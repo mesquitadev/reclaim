@@ -13,8 +13,8 @@ struct ActionBar: View {
 
             Spacer()
 
-            Picker("Ao limpar", selection: Binding(get: { model.mode }, set: { model.mode = $0 })) {
-                ForEach(Cleaner.Mode.allCases, id: \.self) { Text($0.label).tag($0) }
+            Picker(L.t("When cleaning"), selection: Binding(get: { model.mode }, set: { model.mode = $0 })) {
+                ForEach(Cleaner.Mode.allCases, id: \.self) { Text(L.t($0.label)).tag($0) }
             }
             .labelsHidden()
             .pickerStyle(.menu)
@@ -23,7 +23,7 @@ struct ActionBar: View {
             Button {
                 confirming = true
             } label: {
-                Label("Limpar \(model.selectedFindings.count)", systemImage: model.mode == .trash ? "trash" : "flame")
+                Label(L.t("Clean %@", "\(model.selectedFindings.count)"), systemImage: model.mode == .trash ? "trash" : "flame")
             }
             .buttonStyle(.borderedProminent)
             .disabled(model.selection.isEmpty || model.isBusy)
@@ -36,10 +36,10 @@ struct ActionBar: View {
         // A confirmação vale para os dois modos: mesmo a Lixeira, com tudo marcado,
         // move dezenas de gigabytes de uma vez.
         .confirmationDialog(title, isPresented: $confirming, titleVisibility: .visible) {
-            Button(confirmLabel, role: model.mode == .delete ? .destructive : nil) {
+            Button(L.t(confirmLabel), role: model.mode == .delete ? .destructive : nil) {
                 model.clean()
             }
-            Button("Cancelar", role: .cancel) {}
+            Button(L.t("Cancel"), role: .cancel) {}
         } message: {
             Text(confirmMessage)
         }
@@ -49,12 +49,12 @@ struct ActionBar: View {
         let count = model.selectedFindings.count
         let size = model.selectedFindings.totalSize.formattedBytes
         return model.mode == .delete
-            ? "Apagar definitivamente \(count) \(count == 1 ? "item" : "itens") (\(size))?"
-            : "Mover \(count) \(count == 1 ? "item" : "itens") (\(size)) para a Lixeira?"
+            ? L.t("Delete %@ items (%@) permanently?", "\(count)", size)
+            : L.t("Move %@ items (%@) to the Trash?", "\(count)", size)
     }
 
     private var confirmLabel: String {
-        model.mode == .delete ? "Apagar" : "Mover para a Lixeira"
+        model.mode == .delete ? "Delete" : "Move to Trash"
     }
 
     private var confirmMessage: String {
@@ -62,28 +62,30 @@ struct ActionBar: View {
         var parts: [String] = []
         if !risky.isEmpty {
             let names = risky.prefix(3).map(\.name).joined(separator: ", ")
-            parts.append("\(risky.count) \(risky.count == 1 ? "item marcado não é recriado" : "itens marcados não são recriados") por um comando: \(names)\(risky.count > 3 ? "…" : "").")
+            parts.append(L.t("%@ of the selected items are not restored by a command: %@.",
+                             "\(risky.count)", names + (risky.count > 3 ? "…" : "")))
         }
-        parts.append(model.mode == .delete
-            ? "Isso não passa pela Lixeira e não pode ser desfeito."
-            : "Os itens vão para a Lixeira; o espaço só é liberado ao esvaziá-la.")
+        parts.append(L.t(model.mode == .delete
+            ? "This skips the Trash and cannot be undone."
+            : "The items go to the Trash; the space is only freed when you empty it."))
         return parts.joined(separator: " ")
     }
 
     private var summary: String {
         let selected = model.selectedFindings
-        guard !selected.isEmpty else { return "Nada marcado" }
-        return "\(selected.totalSize.formattedBytes) em \(selected.count) itens"
+        guard !selected.isEmpty else { return L.t("Nothing selected") }
+        return L.t("%@ across %@ items", selected.totalSize.formattedBytes, "\(selected.count)")
     }
 
     private var subtitle: String {
         guard !model.selection.isEmpty else {
-            return "Marque o que quer remover — ou use Seleção ▸ Marcar só o reconstruível"
+            return L.t("Select what you want removed — or use Selection ▸ Select only what a command rebuilds")
         }
         let risky = model.selectedFindings.filter { !$0.regenerable }.count
         if risky > 0 {
-            return "\(risky) item\(risky == 1 ? "" : "s") marcado\(risky == 1 ? "" : "s") não é recriado por um comando"
+            return L.t(risky == 1 ? "%@ selected item is not restored by a command"
+                                  : "%@ selected items are not restored by a command", "\(risky)")
         }
-        return "Tudo marcado é reconstruído automaticamente pelas ferramentas"
+        return L.t("Everything selected is rebuilt automatically by your tools")
     }
 }

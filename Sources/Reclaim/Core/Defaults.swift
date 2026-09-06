@@ -12,6 +12,7 @@ enum Defaults {
         static let mode = "mode"
         static let minimumSizeMB = "minimumSizeMB"
         static let discoverAppCaches = "discoverAppCaches"
+        static let language = "language"
     }
 
     static var roots: [URL] {
@@ -51,6 +52,14 @@ enum Defaults {
     static var discoverAppCaches: Bool {
         get { store.object(forKey: Key.discoverAppCaches) as? Bool ?? true }
         set { store.set(newValue, forKey: Key.discoverAppCaches) }
+    }
+
+    /// Idioma escolhido. O padrão é inglês — não a preferência do sistema — para
+    /// que a primeira impressão seja a mesma em qualquer máquina; quem quiser
+    /// português troca no seletor.
+    static var language: Language {
+        get { Language(rawValue: store.string(forKey: Key.language) ?? "") ?? .en }
+        set { store.set(newValue.rawValue, forKey: Key.language) }
     }
 
     static var mode: Cleaner.Mode {

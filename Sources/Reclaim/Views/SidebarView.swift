@@ -5,46 +5,46 @@ struct SidebarView: View {
 
     var body: some View {
         List(selection: filterBinding) {
-            Section("Resumo") {
-                LabeledContent("Encontrado", value: model.totalFound.formattedBytes)
-                LabeledContent("Marcado", value: model.selectedFindings.totalSize.formattedBytes)
+            Section(L.t("Summary")) {
+                LabeledContent(L.t("Found"), value: model.totalFound.formattedBytes)
+                LabeledContent(L.t("Selected"), value: model.selectedFindings.totalSize.formattedBytes)
                 if let free = model.freeSpace {
-                    LabeledContent("Livre no disco", value: free.formattedBytes)
+                    LabeledContent(L.t("Free on disk"), value: free.formattedBytes)
                 }
             }
             .font(.callout)
 
-            Section("Ecossistemas") {
-                row(label: "Tudo", symbol: "tray.full", size: model.totalFound, tag: .all)
+            Section(L.t("Ecosystems")) {
+                row(label: L.t("Everything"), symbol: "tray.full", size: model.totalFound, tag: .all)
                 ForEach(sortedEcosystems, id: \.0) { eco, size in
-                    row(label: eco.label, symbol: eco.symbol, size: size, tag: .ecosystem(eco))
+                    row(label: L.t(eco.label), symbol: eco.symbol, size: size, tag: .ecosystem(eco))
                 }
             }
 
             if model.globalCacheTotal > 0 {
-                Section("Caches globais") {
+                Section(L.t("Global caches")) {
                     ForEach(sortedCacheCategories, id: \.0) { category, size in
-                        row(label: category.label, symbol: category.symbol,
+                        row(label: L.t(category.label), symbol: category.symbol,
                             size: size, tag: .cache(category))
                     }
                 }
             }
 
-            Section("Pastas escaneadas") {
+            Section(L.t("Scanned folders")) {
                 ForEach(model.roots, id: \.self) { root in
                     HStack {
                         Label(root.lastPathComponent, systemImage: "folder")
                             .lineLimit(1)
                             .truncationMode(.head)
                         Spacer()
-                        Button("Remover", systemImage: "minus.circle") { model.removeRoot(root) }
+                        Button(L.t("Remove"), systemImage: "minus.circle") { model.removeRoot(root) }
                             .labelStyle(.iconOnly)
                             .buttonStyle(.borderless)
                             .foregroundStyle(.secondary)
                     }
                     .help(root.path(percentEncoded: false))
                 }
-                Button("Adicionar pasta…", systemImage: "plus") { pickFolder() }
+                Button(L.t("Add folder…"), systemImage: "plus") { pickFolder() }
                     .buttonStyle(.borderless)
             }
         }
@@ -82,8 +82,8 @@ struct SidebarView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = true
-        panel.prompt = "Adicionar"
-        panel.message = "Escolha as pastas onde seus projetos ficam"
+        panel.prompt = L.t("Add")
+        panel.message = L.t("Choose the folders where your projects live")
         guard panel.runModal() == .OK else { return }
         panel.urls.forEach(model.addRoot)
     }

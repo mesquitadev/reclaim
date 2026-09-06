@@ -12,9 +12,9 @@ struct CleaningSheet: View {
                     .font(.title2)
                     .foregroundStyle(model.mode == .trash ? Color.accentColor : .orange)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(model.mode == .trash ? "Movendo para a Lixeira" : "Apagando")
+                    Text(L.t(model.mode == .trash ? "Moving to Trash" : "Deleting"))
                         .font(.headline)
-                    Text("\(progress.done) de \(progress.total) · \(progress.reclaimed.formattedBytes) até agora")
+                    Text(L.t("%@ of %@ · %@ so far", "\(progress.done)", "\(progress.total)", progress.reclaimed.formattedBytes))
                         .font(.callout.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .contentTransition(.numericText())
@@ -37,11 +37,11 @@ struct CleaningSheet: View {
                 .frame(height: 30, alignment: .top)
 
             HStack {
-                Text("Remover árvores grandes leva alguns segundos por item.")
+                Text(L.t("Large trees take a few seconds each."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("Parar") { model.stopCleaning() }
+                Button(L.t("Stop")) { model.stopCleaning() }
                     .keyboardShortcut(.cancelAction)
             }
         }

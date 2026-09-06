@@ -14,7 +14,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct MsCleanerApp: App {
+struct ReclaimApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var model = AppModel()
 
@@ -23,7 +23,7 @@ struct MsCleanerApp: App {
     }
 
     var body: some Scene {
-        Window("MsCleaner", id: "main") {
+        Window("Reclaim", id: "main") {
             ContentView()
                 .environment(model)
                 .frame(minWidth: 900, minHeight: 560)
@@ -31,7 +31,7 @@ struct MsCleanerApp: App {
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(after: .newItem) {
-                Button("Escanear") { model.startScan() }
+                Button(L.t("Scan")) { model.startScan() }
                     .keyboardShortcut("r")
                     .disabled(model.isBusy)
             }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Modo terminal: `MsCleaner --scan <pasta>…` lista o que seria removido, sem tocar
+/// Modo terminal: `Reclaim --scan <pasta>…` lista o que seria removido, sem tocar
 /// em nada. Existe para conferir o comportamento do scanner sem abrir a janela.
 enum HeadlessRun {
     static func runIfRequested() {
@@ -12,7 +12,7 @@ enum HeadlessRun {
             ? Defaults.roots
             : args.map { URL(filePath: $0, directoryHint: .isDirectory) }
         guard !roots.isEmpty else {
-            FileHandle.standardError.write(Data("uso: MsCleaner --scan <pasta>…\n".utf8))
+            FileHandle.standardError.write(Data("uso: Reclaim --scan <pasta>…\n".utf8))
             exit(2)
         }
 
