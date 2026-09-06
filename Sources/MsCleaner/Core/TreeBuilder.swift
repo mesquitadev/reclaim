@@ -56,16 +56,11 @@ struct TreeBuilder {
             current.leaves.append(finding)
         }
 
+        // A pasta escaneada é sempre o topo, mesmo quando há só uma: é ela que
+        // ancora a árvore e diz de onde tudo abaixo veio.
         var nodes = rootNodes.values
             .map { convert($0, isRoot: true) }
             .sorted { $0.size > $1.size }
-
-        // Uma pasta escaneada só não merece um nível próprio: o que interessa
-        // dela já está na barra lateral.
-        if nodes.count == 1 {
-            nodes = nodes[0].children + [nodes[0]].filter { !$0.leaves.isEmpty }
-            nodes.sort { $0.size > $1.size }
-        }
 
         nodes += cacheNodes(from: findings)
         return nodes
@@ -76,8 +71,9 @@ struct TreeBuilder {
         var node = node
 
         // Cadeia de pastas sem bifurcação vira uma linha só (`clientes/acme`),
-        // senão a árvore vira escada.
-        while !node.isProject, node.leaves.isEmpty, node.children.count == 1,
+        // senão a árvore vira escada. A raiz nunca é fundida: ela tem de aparecer
+        // com o próprio nome, mesmo que só haja uma pasta abaixo dela.
+        while !isRoot, !node.isProject, node.leaves.isEmpty, node.children.count == 1,
               let only = node.children.values.first {
             name += "/" + only.name
             node = only

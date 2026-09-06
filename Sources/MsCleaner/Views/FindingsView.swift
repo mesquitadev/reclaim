@@ -219,8 +219,13 @@ struct FindingRow: View {
                     Text(finding.name).fontWeight(.medium)
                     // Dentro da árvore o projeto já é o nó pai; aqui só o que resta
                     // do caminho, que distingue dois `__pycache__` do mesmo projeto.
+                    // A barra final é o que separa o caminho do nome ao lado —
+                    // sem ela, uma pasta chamada "node_modules 21-30" se confunde
+                    // com um node_modules dentro de outro diretório.
                     if let path = finding.pathInProject, model.grouped {
-                        Text(path).foregroundStyle(.secondary)
+                        Text("· " + path + "/")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
                     } else if !model.grouped, let project = finding.projectName {
                         Text("em \(project)").foregroundStyle(.secondary)
                     }
