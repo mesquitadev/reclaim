@@ -17,19 +17,41 @@ struct Cleaner: Sendable {
     struct Outcome: Sendable {
         var removed: [Finding] = []
         var failures: [(finding: Finding, message: String)] = []
+        /// O usuário parou no meio; o que já saiu, saiu.
+        var cancelled = false
         var reclaimed: Int64 { removed.totalSize }
+    }
+
+    /// Sinal de parada compartilhado com a UI. A remoção roda fora do MainActor e
+    /// não herda o cancelamento da `Task`, então o pedido chega por aqui.
+    final class CancelFlag: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stopped = false
+
+        var isCancelled: Bool { lock.withLock { stopped } }
+        func cancel() { lock.withLock { stopped = true } }
     }
 
     let mode: Mode
 
-    func clean(_ findings: [Finding], onProgress: @Sendable (Finding) -> Void) -> Outcome {
+    /// `onProgress` é chamado antes de cada remoção, com quantos já saíram e
+    /// quanto espaço isso somou.
+    func clean(
+        _ findings: [Finding],
+        cancelFlag: CancelFlag,
+        onProgress: @Sendable (Int, Finding, Int64) -> Void
+    ) -> Outcome {
         var outcome = Outcome()
-        for finding in findings {
+        for (index, finding) in findings.enumerated() {
+            guard !cancelFlag.isCancelled else {
+                outcome.cancelled = true
+                break
+            }
             guard PathGuard.isRemovable(finding.url) else {
                 outcome.failures.append((finding, "Caminho protegido"))
                 continue
             }
-            onProgress(finding)
+            onProgress(index, finding, outcome.reclaimed)
             do {
                 if finding.clearContentsOnly {
                     try clearContents(of: finding.url)

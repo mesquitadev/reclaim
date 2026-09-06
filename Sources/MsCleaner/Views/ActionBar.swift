@@ -43,16 +43,6 @@ struct ActionBar: View {
         } message: {
             Text(confirmMessage)
         }
-        .overlay(alignment: .leading) {
-            if model.phase == .cleaning {
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("Limpando…").font(.caption)
-                }
-                .padding(.leading, 16)
-                .background(.bar)
-            }
-        }
     }
 
     private var title: String {
