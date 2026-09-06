@@ -16,6 +16,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct ReclaimApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+    @Environment(\.openWindow) private var openWindow
     @State private var model = AppModel()
 
     init() {
@@ -30,12 +31,31 @@ struct ReclaimApp: App {
         }
         .windowToolbarStyle(.unified)
         .commands {
+            // A janela padrão do AppKit só traz nome e versão; esta traz autoria,
+            // repositório e licença.
+            CommandGroup(replacing: .appInfo) {
+                Button(L.t("About Reclaim")) {
+                    openWindow(id: "about")
+                }
+            }
+            CommandGroup(replacing: .help) {
+                Link(L.t("Reclaim on GitHub"),
+                     destination: URL(string: "https://github.com/mesquitadev/reclaim")!)
+                Link(L.t("Report a problem"),
+                     destination: URL(string: "https://github.com/mesquitadev/reclaim/issues")!)
+            }
             CommandGroup(after: .newItem) {
                 Button(L.t("Scan")) { model.startScan() }
                     .keyboardShortcut("r")
                     .disabled(model.isBusy)
             }
         }
+
+        Window(L.t("About Reclaim"), id: "about") {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
 
         Settings {
             SettingsView().environment(model)
