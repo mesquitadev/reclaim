@@ -1,32 +1,39 @@
 import Foundation
 
 /// Uma linha da árvore já achatada para exibição e para a navegação por teclado.
+/// `depth` é só recuo visual; a ordem da sequência é a ordem das setas.
 enum FlatRow: Identifiable, Sendable {
-    case header(FindingGroup)
-    case child(Finding, groupID: String)
+    case node(TreeNode, depth: Int)
+    case leaf(Finding, depth: Int, parentID: String)
 
     var id: String {
         switch self {
-        case .header(let group): "h:\(group.id)"
-        case .child(let finding, _): "c:\(finding.url.path(percentEncoded: false))"
+        case .node(let node, _): "n:" + node.id
+        case .leaf(let finding, _, _): "l:" + finding.url.path(percentEncoded: false)
         }
     }
 
-    var group: FindingGroup? {
-        if case .header(let group) = self { return group }
+    var depth: Int {
+        switch self {
+        case .node(_, let depth), .leaf(_, let depth, _): depth
+        }
+    }
+
+    var node: TreeNode? {
+        if case .node(let node, _) = self { return node }
         return nil
     }
 
     var finding: Finding? {
-        if case .child(let finding, _) = self { return finding }
+        if case .leaf(let finding, _, _) = self { return finding }
         return nil
     }
 
-    /// Id do grupo ao qual a linha pertence — o próprio, se for cabeçalho.
-    var owningGroupID: String {
+    /// Nó ao qual a linha pertence — o próprio, se for um nó.
+    var parentID: String? {
         switch self {
-        case .header(let group): group.id
-        case .child(_, let groupID): groupID
+        case .node(let node, _): node.id
+        case .leaf(_, _, let parentID): parentID
         }
     }
 }

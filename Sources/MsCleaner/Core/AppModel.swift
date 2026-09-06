@@ -76,70 +76,35 @@ final class AppModel {
             .sorted { $0.size > $1.size }
     }
 
-    /// Os achados visíveis reunidos por projeto, projetos maiores primeiro.
-    var visibleGroups: [FindingGroup] {
-        let visible = visibleFindings
-
-        var byProject: [URL: [Finding]] = [:]
-        for finding in visible {
-            guard let root = finding.projectRoot else { continue }
-            byProject[root, default: []].append(finding)
-        }
-
-        var groups = byProject.map { dir, findings in
-            FindingGroup(kind: .project(dir), name: dir.lastPathComponent,
-                         context: contextPath(for: dir),
-                         findings: findings.sorted { $0.size > $1.size })
-        }
-        .sorted { $0.size > $1.size }
-
-        // Caches não têm projeto: agrupam por categoria e vão para o fim da lista.
-        let byCategory = Dictionary(grouping: visible.compactMap { finding -> (CacheCategory, Finding)? in
-            guard let category = finding.cacheCategory else { return nil }
-            return (category, finding)
-        }, by: \.0)
-
-        groups += CacheCategory.allCases.compactMap { category in
-            guard let entries = byCategory[category], !entries.isEmpty else { return nil }
-            return FindingGroup(kind: .cacheCategory(category), name: category.label,
-                                context: nil,
-                                findings: entries.map(\.1).sorted { $0.size > $1.size })
-        }
-        return groups
+    /// A árvore visível: pastas escaneadas, os diretórios do caminho, os projetos
+    /// e — no fim — as categorias de cache.
+    var tree: [TreeNode] {
+        TreeBuilder(roots: roots).build(from: visibleFindings)
     }
 
-    /// Caminho do projeto relativo à pasta escaneada que o contém, sem o nome dele
-    /// (que já é o título do grupo). `nil` quando o projeto é a própria raiz.
-    private func contextPath(for dir: URL) -> String? {
-        let full = dir.deletingLastPathComponent().path(percentEncoded: false)
-        let root = roots
-            .map { $0.path(percentEncoded: false) }
-            .filter { full.hasPrefix($0) }
-            .max(by: { $0.count < $1.count })
-        guard let root else { return full.isEmpty ? nil : full }
-        let relative = String(full.dropFirst(root.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return relative.isEmpty ? nil : relative
-    }
-
-    /// A árvore achatada na ordem em que aparece na tela: cabeçalho, depois os
-    /// filhos se o grupo estiver aberto. É essa sequência que as setas percorrem —
-    /// por isso ela vive no modelo, e não na view.
+    /// A árvore achatada na ordem em que aparece na tela: um nó, depois sua
+    /// subárvore se estiver aberto. É essa sequência que as setas percorrem — por
+    /// isso ela vive no modelo, e não na view.
     var flatRows: [FlatRow] {
-        visibleGroups.flatMap { group -> [FlatRow] in
-            let header = FlatRow.header(group)
-            guard isExpanded(group) else { return [header] }
-            return [header] + group.findings.map { .child($0, groupID: group.id) }
+        flatten(tree, depth: 0)
+    }
+
+    private func flatten(_ nodes: [TreeNode], depth: Int) -> [FlatRow] {
+        nodes.flatMap { node -> [FlatRow] in
+            let row = FlatRow.node(node, depth: depth)
+            guard isExpanded(node) else { return [row] }
+            return [row]
+                + flatten(node.children, depth: depth + 1)
+                + node.leaves.map { .leaf($0, depth: depth + 1, parentID: node.id) }
         }
     }
 
-    /// Vizinho do cursor na direção dada, ou `nil` se já está na ponta.
-    func row(after row: FlatRow?, offset: Int) -> FlatRow? {
-        let rows = flatRows
-        guard let row, let index = rows.firstIndex(where: { $0.id == row.id }) else {
-            return offset > 0 ? rows.first : rows.last
+    /// Todos os nós, em qualquer profundidade — para achar o que está sob o cursor.
+    var allNodes: [TreeNode] {
+        func collect(_ nodes: [TreeNode]) -> [TreeNode] {
+            nodes.flatMap { [$0] + collect($0.children) }
         }
-        let next = index + offset
-        return rows.indices.contains(next) ? rows[next] : nil
+        return collect(tree)
     }
 
     var selectedFindings: [Finding] {
@@ -288,27 +253,29 @@ final class AppModel {
         if on { selection.formUnion(urls) } else { selection.subtract(urls) }
     }
 
-    /// Estado do checkbox de um grupo: nenhum, alguns ou todos os filhos marcados.
-    func selectionState(of group: FindingGroup) -> ToggleState {
-        let marked = group.findings.count { selection.contains($0.url) }
+    /// Estado do checkbox de um nó, considerando a subárvore inteira.
+    func selectionState(of node: TreeNode) -> ToggleState {
+        let all = node.allFindings
+        guard !all.isEmpty else { return .off }
+        let marked = all.count { selection.contains($0.url) }
         if marked == 0 { return .off }
-        return marked == group.findings.count ? .on : .mixed
+        return marked == all.count ? .on : .mixed
     }
 
-    func setSelection(of group: FindingGroup, on: Bool) {
-        let urls = group.findings.map(\.url)
+    func setSelection(of node: TreeNode, on: Bool) {
+        let urls = node.allFindings.map(\.url)
         if on { selection.formUnion(urls) } else { selection.subtract(urls) }
     }
 
-    func isExpanded(_ group: FindingGroup) -> Bool { !collapsedGroups.contains(group.id) }
+    func isExpanded(_ node: TreeNode) -> Bool { !collapsedGroups.contains(node.id) }
 
-    func setExpanded(_ group: FindingGroup, _ expanded: Bool) {
-        if expanded { collapsedGroups.remove(group.id) } else { collapsedGroups.insert(group.id) }
+    func setExpanded(_ node: TreeNode, _ expanded: Bool) {
+        if expanded { collapsedGroups.remove(node.id) } else { collapsedGroups.insert(node.id) }
     }
 
     func expandAll() { collapsedGroups.removeAll() }
 
-    func collapseAll() { collapsedGroups = Set(visibleGroups.map(\.id)) }
+    func collapseAll() { collapsedGroups = Set(allNodes.map(\.id)) }
     func deselectAll() { selection.removeAll() }
     func selectOnlyRegenerable() {
         selection = Set(findings.filter(\.regenerable).map(\.url))

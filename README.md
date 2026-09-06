@@ -20,10 +20,24 @@ swift run MsCleaner --scan ~/Projects
 
 ## Navegação
 
-A listagem vem agrupada por projeto — a raiz é o `.git` quando existe, senão o
-marcador mais próximo (`package.json`, `Cargo.toml`…), e o cabeçalho mostra onde o
-projeto fica quando há nomes repetidos. Os caches globais formam grupos por
-categoria no fim da lista.
+A listagem é uma árvore que segue a estrutura de pastas, com o total agregado em
+cada nível:
+
+```
+Dizevolv                                    21,36 GB
+  k7cabines                                 20,95 GB
+    target  src-tauri                       20,35 GB
+    node_modules                            599,8 MB
+MaisTech                                     6,84 GB
+  smartobra360                               1,19 GB
+    mdeng-sm360-mobile                      719,1 MB
+      node_modules                          719,1 MB
+```
+
+As pastas do caminho ficam em cinza; o projeto — onde estão o `.git` ou o
+manifesto — vem destacado, e é onde a recursão para. Cadeias de pasta sem
+bifurcação viram uma linha só (`clientes/acme`) para a árvore não virar escada.
+Os caches globais entram no fim, em nós por categoria.
 
 | Tecla | Ação |
 |---|---|
