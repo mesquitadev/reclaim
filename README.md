@@ -90,6 +90,10 @@ justamente aí.
   distraído num app que já veio com 30 GB selecionados custa caro. Marcar é
   decisão explícita, e o menu Seleção dá os atalhos (só o reconstruível, sem uso
   há 30/90 dias).
+- **Uma limpeza por vez.** Enquanto ela roda, uma folha modal mostra o andamento
+  (item atual, quantos de quantos, espaço já liberado) e bloqueia escanear, marcar
+  ou disparar outra remoção — duas em paralelo removeriam a mesma árvore duas
+  vezes. Dá para parar: o item em curso termina e o resto continua marcado.
 - **Confirmação sempre**, nos dois modos — a Lixeira também move dezenas de
   gigabytes de uma vez. O diálogo diz quantos itens, quanto espaço, e nomeia os
   que não são recriados por um comando.

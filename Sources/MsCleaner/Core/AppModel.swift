@@ -8,7 +8,7 @@ final class AppModel {
 
     enum Phase: Equatable {
         case idle, scanning, cleaning
-        case done(reclaimed: Int64, failures: Int)
+        case done(reclaimed: Int64, failures: Int, cancelled: Bool)
     }
 
     // Configuração
@@ -46,6 +46,21 @@ final class AppModel {
     var collapsedGroups: Set<String> = []
 
     private var task: Task<Void, Never>?
+    private var cancelFlag: Cleaner.CancelFlag?
+
+    /// Andamento da limpeza, para a folha de progresso.
+    struct CleanProgress: Equatable {
+        var done = 0
+        var total = 0
+        var reclaimed: Int64 = 0
+        var current = ""
+
+        var fraction: Double {
+            total > 0 ? Double(done) / Double(total) : 0
+        }
+    }
+
+    private(set) var cleanProgress = CleanProgress()
 
     init() {
         roots = Defaults.roots
@@ -152,6 +167,7 @@ final class AppModel {
     }
 
     func startScan() {
+        guard phase != .cleaning else { return }
         task?.cancel()
         findings = []
         selection = []
@@ -188,7 +204,13 @@ final class AppModel {
         }
     }
 
+    /// Para o que estiver em curso — o scan de imediato, a limpeza no fim do
+    /// item atual.
     func cancel() {
+        if phase == .cleaning {
+            stopCleaning()
+            return
+        }
         task?.cancel()
         task = nil
         phase = .idle
@@ -213,17 +235,31 @@ final class AppModel {
     }
 
     func clean() {
+        // Trava: uma limpeza por vez. Duas em paralelo removeriam a mesma árvore
+        // duas vezes e reportariam falhas que não são falhas.
+        guard phase != .cleaning else { return }
         let targets = selectedFindings
         guard !targets.isEmpty else { return }
+
+        task?.cancel()
+        let flag = Cleaner.CancelFlag()
+        cancelFlag = flag
+        cleanProgress = CleanProgress(done: 0, total: targets.count, reclaimed: 0,
+                                      current: targets.first?.name ?? "")
         phase = .cleaning
         let cleaner = Cleaner(mode: mode)
 
         task = Task { [weak self] in
             guard let self else { return }
             let outcome = await Task.detached(priority: .userInitiated) {
-                cleaner.clean(targets) { finding in
+                cleaner.clean(targets, cancelFlag: flag) { index, finding, reclaimed in
                     Task { @MainActor in
-                        self.currentPath = finding.url.path(percentEncoded: false)
+                        self.cleanProgress = CleanProgress(
+                            done: index,
+                            total: targets.count,
+                            reclaimed: reclaimed,
+                            current: finding.url.path(percentEncoded: false)
+                        )
                     }
                 }
             }.value
@@ -231,9 +267,16 @@ final class AppModel {
             let removed = Set(outcome.removed.map(\.url))
             findings.removeAll { removed.contains($0.url) }
             selection.subtract(removed)
+            cancelFlag = nil
             currentPath = ""
-            phase = .done(reclaimed: outcome.reclaimed, failures: outcome.failures.count)
+            phase = .done(reclaimed: outcome.reclaimed, failures: outcome.failures.count,
+                          cancelled: outcome.cancelled)
         }
+    }
+
+    /// Para a limpeza depois do item atual — o que já saiu não volta.
+    func stopCleaning() {
+        cancelFlag?.cancel()
     }
 
     func dismissResult() {

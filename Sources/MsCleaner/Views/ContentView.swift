@@ -18,6 +18,7 @@ struct ContentView: View {
         .searchable(text: Binding(get: { model.search }, set: { model.search = $0 }),
                     placement: .toolbar, prompt: "Filtrar por projeto ou caminho")
         .sheet(isPresented: resultBinding) { ResultSheet() }
+        .sheet(isPresented: .constant(model.phase == .cleaning)) { CleaningSheet() }
     }
 
     @ToolbarContentBuilder

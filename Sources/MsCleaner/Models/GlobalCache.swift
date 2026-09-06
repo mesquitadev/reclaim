@@ -55,7 +55,7 @@ struct GlobalCache: Identifiable, Sendable {
         self.id = id
         self.name = name
         self.relativePath = relativePath
-        self.category = category
+        self.category = category    
         self.detail = detail
         self.clearContentsOnly = clearContentsOnly
         self.safeByDefault = safeByDefault
