@@ -39,7 +39,7 @@ struct Scanner: Sendable {
 
         for root in roots {
             guard !Task.isCancelled else { break }
-            await walk(root, depth: 0, index: index, progress: &progress, batch: &batch,
+            await walk(root, depth: 0, project: nil, index: index, progress: &progress, batch: &batch,
                        onProgress: onProgress, onBatch: onBatch)
         }
         if !batch.isEmpty { onBatch(batch) }
@@ -49,6 +49,8 @@ struct Scanner: Sendable {
     private func walk(
         _ dir: URL,
         depth: Int,
+        /// Raiz do projeto que engloba `dir`, se já cruzamos uma.
+        project: URL?,
         index: [String: [Rule]],
         progress: inout Progress,
         batch: inout [Finding],
@@ -73,6 +75,17 @@ struct Scanner: Sendable {
         // Nomes presentes neste diretório: é o que valida os sentinelas das regras
         // (`dist/` só conta como lixo se houver um `package.json` aqui).
         let siblings = Set(entries.map(\.lastPathComponent))
+
+        // Raiz do projeto para tudo abaixo daqui. `.git` sempre vence — é o limite do
+        // repositório. Os demais marcadores só valem se ainda não temos raiz; senão um
+        // `src-tauri/Cargo.toml` roubaria o grupo do app Tauri que o contém.
+        let project: URL? = if siblings.contains(".git") {
+            dir
+        } else if project == nil, Self.projectMarkers.contains(where: siblings.contains) {
+            dir
+        } else {
+            project
+        }
         var subdirs: [URL] = []
 
         for entry in entries {
@@ -84,7 +97,8 @@ struct Scanner: Sendable {
 
             if let matched = index[name]?.first(where: { $0.matches(isDirectory: isDir, siblings: siblings) }) {
                 guard PathGuard.isRemovable(entry) else { continue }
-                if let finding = await makeFinding(at: entry, rule: matched, isDirectory: isDir),
+                if let finding = await makeFinding(at: entry, rule: matched, isDirectory: isDir,
+                                                   project: project ?? dir),
                    finding.size >= minimumSize {
                     batch.append(finding)
                     progress.found += 1
@@ -100,31 +114,34 @@ struct Scanner: Sendable {
         }
 
         for sub in subdirs {
-            await walk(sub, depth: depth + 1, index: index, progress: &progress, batch: &batch,
-                       onProgress: onProgress, onBatch: onBatch)
+            await walk(sub, depth: depth + 1, project: project, index: index, progress: &progress,
+                       batch: &batch, onProgress: onProgress, onBatch: onBatch)
         }
     }
 
-    private func makeFinding(at url: URL, rule: Rule, isDirectory: Bool) async -> Finding? {
+    private func makeFinding(at url: URL, rule: Rule, isDirectory: Bool, project: URL) async -> Finding? {
         let usage = isDirectory ? DiskUsage.measure(url) : DiskUsage.measureFile(url)
         guard usage.size > 0 || !isDirectory else { return nil }
-        let projectName = Self.projectName(for: url)
         return Finding(
             url: url,
-            origin: .project(ruleID: rule.id, ecosystem: rule.ecosystem, projectName: projectName),
+            origin: .project(ruleID: rule.id, ecosystem: rule.ecosystem, root: project),
             size: usage.size,
             fileCount: usage.files,
             modified: usage.modified,
             detail: rule.detail,
+            title: nil,
             regenerable: rule.regenerable,
             clearContentsOnly: false
         )
     }
 
-    /// O projeto ao qual um achado pertence é, por convenção, o diretório que o contém.
-    private static func projectName(for url: URL) -> String {
-        url.deletingLastPathComponent().lastPathComponent
-    }
+    /// Marcadores de raiz usados quando não há um `.git` acima — projetos soltos,
+    /// fora de repositório.
+    static let projectMarkers: Set<String> = [
+        "package.json", "Cargo.toml", "go.mod", "pyproject.toml", "setup.py",
+        "requirements.txt", "pom.xml", "build.gradle", "build.gradle.kts", "Package.swift",
+        "Podfile", "composer.json", "Gemfile", "pubspec.yaml", "CMakeLists.txt", "Makefile",
+    ]
 }
 
 private extension Rule {

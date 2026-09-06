@@ -28,6 +28,15 @@ struct ContentView: View {
             }
         }
         ToolbarItem(placement: .primaryAction) {
+            Picker("Exibição", selection: Binding(get: { model.grouped }, set: { model.grouped = $0 })) {
+                Label("Por projeto", systemImage: "list.bullet.indent").tag(true)
+                Label("Lista", systemImage: "list.bullet").tag(false)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .help("Agrupar por projeto ou listar tudo por tamanho")
+        }
+        ToolbarItem(placement: .primaryAction) {
             Menu("Seleção", systemImage: "checklist") {
                 Button("Marcar tudo visível") { model.selectAllVisible() }
                 Button("Marcar só o reconstruível") { model.selectOnlyRegenerable() }
@@ -36,6 +45,11 @@ struct ContentView: View {
                 Button("Marcar sem uso há 90 dias") { model.selectStale(days: 90) }
                 Divider()
                 Button("Desmarcar tudo") { model.deselectAll() }
+                if model.grouped {
+                    Divider()
+                    Button("Expandir todos os grupos") { model.expandAll() }
+                    Button("Recolher todos os grupos") { model.collapseAll() }
+                }
             }
             .disabled(model.findings.isEmpty)
         }
