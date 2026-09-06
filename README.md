@@ -25,7 +25,13 @@ default is the Trash rather than deletion.
 
 ```sh
 brew install --cask mesquitadev/tap/reclaim
+xattr -dr com.apple.quarantine /Applications/Reclaim.app
 ```
+
+The second line is needed because the app is signed ad-hoc rather than notarized
+by Apple — notarization requires a paid Apple Developer account. Without it macOS
+refuses the first launch. Right-clicking the app in Finder → Open → Open does the
+same thing, once.
 
 Or build from source:
 
@@ -140,7 +146,12 @@ Lixeira em vez de apagar de vez.
 
 ```sh
 brew install --cask mesquitadev/tap/reclaim
+xattr -dr com.apple.quarantine /Applications/Reclaim.app
 ```
+
+A segunda linha é necessária porque o app é assinado ad-hoc, não notarizado pela
+Apple — notarizar exige conta paga de desenvolvedor. Sem ela o macOS recusa a
+primeira abertura.
 
 O app abre em inglês; para trocar, Ajustes › Geral › Idioma › Português (Brasil).
 
