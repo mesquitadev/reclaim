@@ -8,12 +8,15 @@ struct ContentView: View {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 300)
         } detail: {
+            // A barra de ação precisa ficar no mesmo nível da lista: aplicada no
+            // NavigationSplitView, ela cobria a última linha em vez de reservar
+            // espaço no fim da rolagem.
             FindingsView()
+                .safeAreaInset(edge: .bottom, spacing: 0) { ActionBar() }
         }
         .toolbar { toolbar }
         .searchable(text: Binding(get: { model.search }, set: { model.search = $0 }),
                     placement: .toolbar, prompt: "Filtrar por projeto ou caminho")
-        .safeAreaInset(edge: .bottom) { ActionBar() }
         .sheet(isPresented: resultBinding) { ResultSheet() }
     }
 
