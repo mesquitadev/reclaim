@@ -10,7 +10,15 @@ Scripts/bundle.sh          # gera dist/MsCleaner.app (universal arm64 + x86_64)
 open dist/MsCleaner.app
 ```
 
-Ou, no Xcode: `open Package.swift`.
+No Xcode: `open Package.swift`, escolha o scheme **MsCleaner** e o destino **My Mac**.
+
+Rodando pelo Xcode ou por `swift run`, o binário do SwiftPM não tem bundle nem
+`Info.plist` — sem isso o LaunchServices trataria o processo como acessório e a
+janela nunca viria para a frente. O `AppDelegate` promove a política de ativação
+no lançamento, então os dois modos funcionam. O que só o `.app` empacotado tem é
+a identidade estável de bundle, e é dela que dependem as permissões de disco: o
+macOS lembra o acesso concedido a `dev.mesquita.MsCleaner`, não a um executável
+avulso em `.build/`. Para testar as pastas protegidas, use o `.app`.
 
 Modo terminal, só listagem (não remove nada):
 
