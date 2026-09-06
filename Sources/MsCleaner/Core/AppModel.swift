@@ -202,6 +202,12 @@ final class AppModel {
     }
 
     private func finishScan() {
+        let deduplicated = findings.withoutNested
+        if deduplicated.count != findings.count {
+            let kept = Set(deduplicated.map(\.url))
+            selection.formIntersection(kept)
+            findings = deduplicated
+        }
         currentPath = ""
         phase = .idle
     }
