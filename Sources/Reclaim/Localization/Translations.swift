@@ -113,6 +113,17 @@ extension L {
         "When cleaning": "Ao limpar",
         "System": "Sistema",
 
+        // MARK: Sobre
+        "About Reclaim": "Sobre o Reclaim",
+        "Get your disk space back.": "Recupere seu espaço em disco.",
+        "Version %@": "Versão %@",
+        "Developer": "Desenvolvedor",
+        "Source": "Código",
+        "Issues": "Problemas",
+        "Report a problem": "Relatar um problema",
+        "Free and open source under the MIT license.": "Livre e de código aberto sob a licença MIT.",
+        "Reclaim on GitHub": "Reclaim no GitHub",
+
         // MARK: Ecossistemas e categorias
         "Node / JS": "Node / JS",
         "Swift / Xcode": "Swift / Xcode",
