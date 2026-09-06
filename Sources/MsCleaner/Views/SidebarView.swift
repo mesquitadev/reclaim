@@ -15,32 +15,18 @@ struct SidebarView: View {
             .font(.callout)
 
             Section("Ecossistemas") {
-                Label("Tudo", systemImage: "tray.full")
-                    .tag(Ecosystem?.none)
+                row(label: "Tudo", symbol: "tray.full", size: model.totalFound, tag: .all)
                 ForEach(sortedEcosystems, id: \.0) { eco, size in
-                    HStack {
-                        Label(eco.label, systemImage: eco.symbol)
-                        Spacer()
-                        Text(size.formattedBytes)
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                    .tag(Ecosystem?.some(eco))
+                    row(label: eco.label, symbol: eco.symbol, size: size, tag: .ecosystem(eco))
                 }
             }
 
             if model.globalCacheTotal > 0 {
                 Section("Caches globais") {
                     ForEach(sortedCacheCategories, id: \.0) { category, size in
-                        HStack {
-                            Label(category.label, systemImage: category.symbol)
-                            Spacer()
-                            Text(size.formattedBytes)
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
+                        row(label: category.label, symbol: category.symbol,
+                            size: size, tag: .cache(category))
                     }
-                    .font(.callout)
                 }
             }
 
@@ -65,6 +51,18 @@ struct SidebarView: View {
         .listStyle(.sidebar)
     }
 
+    /// Uma linha de filtro. Toda linha selecionável precisa de uma tag concreta.
+    private func row(label: String, symbol: String, size: Int64, tag: Filter) -> some View {
+        HStack {
+            Label(label, systemImage: symbol)
+            Spacer()
+            Text(size.formattedBytes)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .tag(tag)
+    }
+
     private var sortedEcosystems: [(Ecosystem, Int64)] {
         model.sizeByEcosystem.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
     }
@@ -73,8 +71,10 @@ struct SidebarView: View {
         model.sizeByCacheCategory.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
     }
 
-    private var filterBinding: Binding<Ecosystem?> {
-        Binding(get: { model.filter }, set: { model.filter = $0 })
+    /// A `List` entrega `nil` ao clicar numa linha já selecionada; nesse caso
+    /// mantemos o filtro em vez de cair num estado sem seleção.
+    private var filterBinding: Binding<Filter?> {
+        Binding(get: { model.filter }, set: { model.filter = $0 ?? .all })
     }
 
     private func pickFolder() {

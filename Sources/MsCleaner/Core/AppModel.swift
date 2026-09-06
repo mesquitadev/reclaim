@@ -40,7 +40,7 @@ final class AppModel {
     private(set) var scannedDirs: Int = 0
     var selection: Set<URL> = []
     var search: String = ""
-    var filter: Ecosystem?
+    var filter: Filter = .all
     /// Agrupado por projeto (padrão) ou lista corrida ordenada por tamanho.
     var grouped: Bool = true
     var collapsedGroups: Set<String> = []
@@ -77,10 +77,7 @@ final class AppModel {
 
     var visibleFindings: [Finding] {
         findings
-            .filter { finding in
-                guard let filter else { return true }
-                return finding.ecosystem == filter
-            }
+            .filter { filter.matches($0) }
             .filter { finding in
                 guard !search.isEmpty else { return true }
                 let needle = search.lowercased()
