@@ -13,6 +13,9 @@ enum Defaults {
         static let minimumSizeMB = "minimumSizeMB"
         static let discoverAppCaches = "discoverAppCaches"
         static let language = "language"
+        static let fileRoots = "fileRoots"
+        static let fileMinimumSizeMB = "fileMinimumSizeMB"
+        static let filesFollowProjectRoots = "filesFollowProjectRoots"
     }
 
     static var roots: [URL] {
@@ -60,6 +63,30 @@ enum Defaults {
     static var language: Language {
         get { Language(rawValue: store.string(forKey: Key.language) ?? "") ?? .en }
         set { store.set(newValue.rawValue, forKey: Key.language) }
+    }
+
+    /// Pastas extras para duplicados e entulho, além das de projetos.
+    static var fileRoots: [URL] {
+        get {
+            let paths = store.stringArray(forKey: Key.fileRoots) ?? []
+            let urls = paths.map { URL(filePath: $0, directoryHint: .isDirectory) }
+                .filter { FileManager.default.fileExists(atPath: $0.path) }
+            // Sem padrão: as pastas de projetos já vêm do app, e adivinhar
+            // Downloads e Documentos faria a ferramenta varrer o que ninguém
+            // pediu.
+            return urls
+        }
+        set { store.set(newValue.map(\.path), forKey: Key.fileRoots) }
+    }
+
+    static var filesFollowProjectRoots: Bool {
+        get { store.object(forKey: Key.filesFollowProjectRoots) as? Bool ?? true }
+        set { store.set(newValue, forKey: Key.filesFollowProjectRoots) }
+    }
+
+    static var fileMinimumSizeMB: Int {
+        get { store.object(forKey: Key.fileMinimumSizeMB) as? Int ?? 1 }
+        set { store.set(newValue, forKey: Key.fileMinimumSizeMB) }
     }
 
     static var mode: Cleaner.Mode {

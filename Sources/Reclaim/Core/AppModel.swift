@@ -49,6 +49,11 @@ final class AppModel {
     var selection: Set<URL> = []
     var search: String = ""
     var filter: Filter = .all
+    /// A aba inicial. A variável de ambiente existe para os testes: o defeito
+    /// de toolbar duplicada só aparecia ao entrar numa aba, e verificar as
+    /// quatro exigia abrir o app em cada uma.
+    var tool: Tool = ProcessInfo.processInfo.environment["RECLAIM_TOOL"]
+        .flatMap(Tool.init(rawValue:)) ?? .development
     /// Agrupado por projeto (padrão) ou lista corrida ordenada por tamanho.
     var grouped: Bool = true
     var collapsedGroups: Set<String> = []
@@ -278,8 +283,25 @@ final class AppModel {
             currentPath = ""
             phase = .done(reclaimed: outcome.reclaimed, failures: outcome.failures.count,
                           cancelled: outcome.cancelled)
+            onFinishCleaning?()
+            onFinishCleaning = nil
         }
     }
+
+    /// Remove arquivos vindos das ferramentas de arquivos.
+    ///
+    /// Reaproveita o mesmo caminho da limpeza de projetos — mesma confirmação,
+    /// mesma folha de progresso, mesma trava, mesma Lixeira por padrão. Um
+    /// segundo caminho de remoção seria um segundo lugar para errar.
+    func cleanFiles(_ targets: [Finding], onFinish: @escaping () -> Void) {
+        guard phase != .cleaning, !targets.isEmpty else { return }
+        findings = targets
+        selection = Set(targets.map(\.url))
+        onFinishCleaning = onFinish
+        clean()
+    }
+
+    private var onFinishCleaning: (() -> Void)?
 
     /// Para a limpeza depois do item atual — o que já saiu não volta.
     func stopCleaning() {

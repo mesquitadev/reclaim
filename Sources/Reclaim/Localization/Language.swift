@@ -46,3 +46,20 @@ enum L {
         String(format: t(key), arguments: arguments)
     }
 }
+
+#if DEBUG
+/// Chave repetida num dicionário literal aborta o processo em tempo de
+/// execução — e como a tabela é `static let`, o estouro só acontece quando
+/// alguém troca o idioma para português. Foi assim que o app passou a abrir em
+/// inglês e morrer em português, sem erro de compilação nenhum.
+///
+/// Esta verificação roda nos testes e no build de depuração.
+enum TranslationCheck {
+    @MainActor
+    static func run() -> [String] {
+        // Reconstruir a tabela já dispara o aborto se houver repetição; o que
+        // resta verificar é que nenhuma chave ficou sem tradução de fato.
+        L.ptBR.filter { $0.value.isEmpty }.map(\.key).sorted()
+    }
+}
+#endif

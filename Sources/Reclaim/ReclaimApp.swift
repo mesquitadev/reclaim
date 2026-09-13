@@ -18,6 +18,8 @@ struct ReclaimApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @Environment(\.openWindow) private var openWindow
     @State private var model = AppModel()
+    @State private var apps = AppsModel()
+    @State private var files = FileModel()
 
     init() {
         HeadlessRun.runIfRequested()
@@ -27,6 +29,8 @@ struct ReclaimApp: App {
         Window("Reclaim", id: "main") {
             ContentView()
                 .environment(model)
+                .environment(files)
+                .environment(apps)
                 .frame(minWidth: 900, minHeight: 560)
         }
         .windowToolbarStyle(.unified)

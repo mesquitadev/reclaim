@@ -9,6 +9,8 @@ struct Finding: Identifiable, Sendable, Hashable {
         case project(ruleID: String, ecosystem: Ecosystem, root: URL)
         /// Cache global de ferramenta ou de app.
         case globalCache(id: String, category: CacheCategory)
+        /// Rastro de um app sendo desinstalado.
+        case appLeftover(bundleID: String, kind: Leftover.Kind)
     }
 
     let url: URL
